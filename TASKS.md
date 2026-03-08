@@ -2,10 +2,10 @@
 
 ## Phase 1: Project Setup
 
-- [ ] #1 Generate Phoenix project scaffold
-- [ ] #2 Add dependencies (TermUI, Credo)
-- [ ] #3 Configure database and application settings
-- [ ] #4 Initialize git repo and create .gitignore
+- [x] #1 Generate Phoenix project scaffold
+- [x] #2 Add dependencies (TermUI, Credo)
+- [x] #3 Configure database and application settings
+- [x] #4 Initialize git repo and create .gitignore
 
 ## Phase 2: Database Layer
 
