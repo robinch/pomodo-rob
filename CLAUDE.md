@@ -65,3 +65,34 @@ mix ecto.rollback  # Rollback last migration
 - Timer state is managed in a process (GenServer), not in the database. Sessions are persisted only on completion.
 - The core `Pomodoro` context handles all business rules. Web and TUI are thin presentation layers.
 - Default categories ("Work", "Study", "Personal") are seeded on first run via `priv/repo/seeds.exs`.
+
+## Workflow & Task Tracking
+
+- **`TASKS.md`** — master checklist of all 40 tasks, grouped by phase. Check off tasks as completed.
+- **GitHub Issues** — each task is a GitHub Issue (#1–#40) with phase labels (`phase:1-setup` through `phase:6-tui`). Close issues as tasks are completed.
+- **GitHub repo**: https://github.com/robinch/pomodo-rob (private)
+
+### Execution order
+
+Tasks are organized in 6 phases with dependencies. Work them in order:
+
+1. **Phase 1: Project Setup** (#1–#4) — Phoenix scaffold, deps, DB config, git
+2. **Phase 2: Database Layer** (#5–#8) — schemas, migrations, seeds
+3. **Phase 3: Core Context** (#9–#17) — CRUD, queries, stats (Category/Settings/Session tracks can be parallel)
+4. **Phase 4: Timer GenServer** (#18–#22) — start/tick/complete, pause/resume/cancel, breaks, supervision
+5. **Phase 5: Web UI** (#23–#34) — layout, LiveView pages (Timer, Sessions, Categories, Stats, Settings)
+6. **Phase 6: TUI** (#35–#40) — Ratatouille terminal interface
+
+### When completing a task
+
+1. Mark the checkbox in `TASKS.md` (`- [x]`)
+2. Close the GitHub Issue: `gh issue close <number>`
+3. Commit the work
+4. Check what's next by reviewing TASKS.md for the next unchecked item
+
+### Verification after each phase
+
+- `mix compile --warnings-as-errors`
+- `mix test`
+- `mix format --check-formatted`
+- `mix credo --strict`
