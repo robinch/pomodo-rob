@@ -3,7 +3,7 @@
 ## Phase 1: Project Setup
 
 - [ ] #1 Generate Phoenix project scaffold
-- [ ] #2 Add dependencies (Ratatouille, Credo)
+- [ ] #2 Add dependencies (TermUI, Credo)
 - [ ] #3 Configure database and application settings
 - [ ] #4 Initialize git repo and create .gitignore
 
@@ -58,7 +58,7 @@
 
 ## Phase 6: TUI
 
-- [ ] #35 Set up Ratatouille TUI app and supervision
+- [ ] #35 Set up TermUI TUI app and supervision
 - [ ] #36 Create TUI timer view
 - [ ] #37 Create TUI category selection
 - [ ] #38 Create TUI today's sessions and stats views

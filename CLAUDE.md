@@ -1,6 +1,6 @@
 # PomodoRob
 
-Pomodoro Tracker — a personal time-management app with both a Phoenix LiveView web interface and a Ratatouille terminal UI. Single-user, no auth.
+Pomodoro Tracker — a personal time-management app with both a Phoenix LiveView web interface and a TermUI terminal UI. Single-user, no auth.
 
 See `FEATURES.md` for the full feature spec.
 
@@ -9,7 +9,7 @@ See `FEATURES.md` for the full feature spec.
 - Elixir 1.19+ / OTP 28+
 - Phoenix 1.8+ / LiveView 1.1+
 - Ecto + PostgreSQL
-- Ratatouille (terminal UI)
+- TermUI (terminal UI)
 - Credo (linting)
 
 ## Project Structure
@@ -18,13 +18,13 @@ Single Phoenix app (not umbrella). Module namespaces:
 
 - `PomodoRob.Pomodoro.*` — Core business logic (contexts, schemas). Both interfaces consume these modules.
 - `PomodoRobWeb.*` — Phoenix web interface (LiveView, controllers, components)
-- `PomodoRob.TUI.*` — Ratatouille terminal interface
+- `PomodoRob.TUI.*` — TermUI terminal interface
 
 ```
 lib/
   pomodo_rob/
     pomodoro/          # Core context: sessions, categories, settings, timer logic
-    tui/               # Ratatouille views and app
+    tui/               # TermUI views and app
     application.ex
   pomodo_rob_web/
     live/              # LiveView modules
@@ -58,7 +58,7 @@ mix ecto.rollback  # Rollback last migration
 - Follow standard Phoenix patterns: contexts for business logic, schemas for data, LiveView for interactivity
 - Tests go in `test/` mirroring `lib/` structure. Use `ExUnit` with `async: true` where possible
 - Context modules expose the public API; schemas are not used directly outside contexts
-- Keep core logic in `PomodoRob.Pomodoro.*` decoupled from both web and TUI — no Phoenix or Ratatouille deps in core modules
+- Keep core logic in `PomodoRob.Pomodoro.*` decoupled from both web and TUI — no Phoenix or TermUI deps in core modules
 
 ## Architecture Notes
 
@@ -81,7 +81,7 @@ Tasks are organized in 6 phases with dependencies. Work them in order:
 3. **Phase 3: Core Context** (#9–#17) — CRUD, queries, stats (Category/Settings/Session tracks can be parallel)
 4. **Phase 4: Timer GenServer** (#18–#22) — start/tick/complete, pause/resume/cancel, breaks, supervision
 5. **Phase 5: Web UI** (#23–#34) — layout, LiveView pages (Timer, Sessions, Categories, Stats, Settings)
-6. **Phase 6: TUI** (#35–#40) — Ratatouille terminal interface
+6. **Phase 6: TUI** (#35–#40) — TermUI terminal interface
 
 ### When completing a task
 

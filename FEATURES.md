@@ -1,7 +1,7 @@
 # Pomodoro Tracker — Feature Spec
 
 ## What is it?
-A personal time-management app based on the Pomodoro Technique. Track focused work sessions, categorize your work, and review how you spend your time. Available as both a web app (Phoenix LiveView) and a terminal interface (Ratatouille TUI).
+A personal time-management app based on the Pomodoro Technique. Track focused work sessions, categorize your work, and review how you spend your time. Available as both a web app (Phoenix LiveView) and a terminal interface (TermUI TUI).
 
 ---
 
@@ -55,13 +55,13 @@ A personal time-management app based on the Pomodoro Technique. Track focused wo
 ### Web (Phoenix LiveView)
 All features above available through the browser.
 
-### TUI (Ratatouille)
+### TUI (TermUI)
 Core features available in the terminal:
 - Start/pause/cancel timer
 - Select category
 - View today's sessions
 - View basic stats
-- Charts/visual stats can be added later (Ratatouille supports chart widgets)
+- Charts/visual stats can be added later (TermUI supports chart widgets)
 
 ---
 
