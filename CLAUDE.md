@@ -9,6 +9,7 @@ See `FEATURES.md` for the full feature spec.
 - Elixir 1.19+ / OTP 28+
 - Phoenix 1.8+ / LiveView 1.1+
 - Ecto + PostgreSQL
+- Tailwind CSS 4 + DaisyUI (component library)
 - TermUI (terminal UI)
 - Credo (linting)
 
