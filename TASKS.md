@@ -10,8 +10,8 @@
 ## Phase 2: Database Layer
 
 - [x] #5 Create Category schema and migration
-- [ ] #6 Create Settings schema and migration
-- [ ] #7 Create Session schema and migration
+- [x] #6 Create Settings schema and migration
+- [x] #7 Create Session schema and migration
 - [ ] #8 Create seeds file for default data
 
 ## Phase 3: Core Context
