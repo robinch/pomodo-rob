@@ -26,7 +26,7 @@
 
 **Session track:**
 - [x] #13 Implement Session CRUD in Pomodoro context
-- [ ] #14 Implement Session query functions
+- [x] #14 Implement Session query functions
 - [ ] #15 Write tests for Session CRUD and queries
 
 **Stats:**

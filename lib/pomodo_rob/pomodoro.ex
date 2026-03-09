@@ -147,4 +147,30 @@ defmodule PomodoRob.Pomodoro do
   def change_session(%Session{} = session, attrs \\ %{}) do
     Session.changeset(session, attrs)
   end
+
+  @doc "Returns completed sessions started today, ordered by started_at desc."
+  @spec list_sessions_today() :: [Session.t()]
+  def list_sessions_today do
+    list_sessions(status: "completed", date: Date.utc_today())
+  end
+
+  @doc "Returns completed sessions started within the given date range (inclusive), ordered by started_at desc."
+  @spec list_sessions_by_date_range(Date.t(), Date.t()) :: [Session.t()]
+  def list_sessions_by_date_range(%Date{} = from, %Date{} = to) do
+    start = DateTime.new!(from, ~T[00:00:00], "Etc/UTC")
+    finish = DateTime.new!(Date.add(to, 1), ~T[00:00:00], "Etc/UTC")
+
+    Session
+    |> where([s], s.status == "completed")
+    |> where([s], s.started_at >= ^start and s.started_at < ^finish)
+    |> order_by([s], desc: s.started_at)
+    |> preload(:category)
+    |> Repo.all()
+  end
+
+  @doc "Returns completed sessions for the given category, ordered by started_at desc."
+  @spec list_sessions_by_category(integer()) :: [Session.t()]
+  def list_sessions_by_category(category_id) do
+    list_sessions(status: "completed", category_id: category_id)
+  end
 end
