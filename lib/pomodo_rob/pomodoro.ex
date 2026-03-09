@@ -84,10 +84,29 @@ defmodule PomodoRob.Pomodoro do
   # Sessions
   # ---------------------------------------------------------------------------
 
-  @doc "Returns all sessions ordered by started_at descending, with category preloaded."
-  @spec list_sessions() :: [Session.t()]
-  def list_sessions do
-    Session
+  @doc """
+  Returns sessions ordered by started_at descending, with category preloaded.
+
+  Accepts optional filters:
+  - `:category_id` — filter by category
+  - `:status` — filter by status ("completed" or "cancelled")
+  - `:date` — filter to sessions started on a given `Date`
+  """
+  @spec list_sessions(keyword()) :: [Session.t()]
+  def list_sessions(filters \\ []) do
+    filters
+    |> Enum.reduce(Session, fn
+      {:category_id, id}, query ->
+        where(query, [s], s.category_id == ^id)
+
+      {:status, status}, query ->
+        where(query, [s], s.status == ^status)
+
+      {:date, date}, query ->
+        start = DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
+        finish = DateTime.new!(Date.add(date, 1), ~T[00:00:00], "Etc/UTC")
+        where(query, [s], s.started_at >= ^start and s.started_at < ^finish)
+    end)
     |> order_by([s], desc: s.started_at)
     |> preload(:category)
     |> Repo.all()
