@@ -30,8 +30,8 @@
 - [x] #15 Write tests for Session CRUD and queries
 
 **Stats:**
-- [ ] #16 Implement stats functions in Pomodoro context
-- [ ] #17 Write tests for stats functions
+- [x] #16 Implement stats functions in Pomodoro context
+- [x] #17 Write tests for stats functions
 
 ## Phase 4: Timer GenServer
 

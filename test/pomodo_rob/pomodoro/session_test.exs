@@ -283,4 +283,280 @@ defmodule PomodoRob.Pomodoro.SessionTest do
       assert Pomodoro.list_sessions_by_category(cat.id) == []
     end
   end
+
+  # ---------------------------------------------------------------------------
+  # Stats
+  # ---------------------------------------------------------------------------
+
+  describe "sessions_completed_today/0" do
+    test "returns 0 when no sessions exist" do
+      assert Pomodoro.sessions_completed_today() == 0
+    end
+
+    test "returns 0 when only cancelled sessions today" do
+      today = Date.utc_today()
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[09:00:00], "Etc/UTC"),
+        status: "cancelled"
+      })
+
+      assert Pomodoro.sessions_completed_today() == 0
+    end
+
+    test "counts only completed sessions started today" do
+      today = Date.utc_today()
+      yesterday = Date.add(today, -1)
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[08:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[10:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[12:00:00], "Etc/UTC"),
+        status: "cancelled"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(yesterday, ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      assert Pomodoro.sessions_completed_today() == 2
+    end
+  end
+
+  describe "sessions_by_category/1" do
+    test "returns empty list when no sessions exist" do
+      assert Pomodoro.sessions_by_category(:today) == []
+    end
+
+    test "groups completed sessions by category for :today" do
+      today = Date.utc_today()
+      now = DateTime.new!(today, ~T[09:00:00], "Etc/UTC")
+
+      cat1 = insert_category(%{name: "Work", color: "#ff0000"})
+      cat2 = insert_category(%{name: "Study", color: "#0000ff"})
+
+      insert_session(%{started_at: now, status: "completed", category_id: cat1.id})
+      insert_session(%{started_at: now, status: "completed", category_id: cat1.id})
+      insert_session(%{started_at: now, status: "completed", category_id: cat2.id})
+
+      results = Pomodoro.sessions_by_category(:today)
+
+      assert [
+               %{category_name: "Work", category_color: "#ff0000", count: 2},
+               %{category_name: "Study", category_color: "#0000ff", count: 1}
+             ] = results
+    end
+
+    test "excludes cancelled sessions" do
+      today = Date.utc_today()
+      now = DateTime.new!(today, ~T[09:00:00], "Etc/UTC")
+      cat = insert_category(%{name: "Work", color: "#ff0000"})
+
+      insert_session(%{started_at: now, status: "completed", category_id: cat.id})
+      insert_session(%{started_at: now, status: "cancelled", category_id: cat.id})
+
+      results = Pomodoro.sessions_by_category(:today)
+      assert [%{category_name: "Work", count: 1}] = results
+    end
+
+    test "handles sessions without a category" do
+      today = Date.utc_today()
+      now = DateTime.new!(today, ~T[09:00:00], "Etc/UTC")
+
+      insert_session(%{started_at: now, status: "completed"})
+
+      results = Pomodoro.sessions_by_category(:today)
+      assert [%{category_name: "Uncategorized", category_color: nil, count: 1}] = results
+    end
+
+    test "respects :week period" do
+      today = Date.utc_today()
+      monday = Date.add(today, 1 - Date.day_of_week(today))
+      before_monday = Date.add(monday, -1)
+
+      cat = insert_category(%{name: "Work", color: "#ff0000"})
+
+      insert_session(%{
+        started_at: DateTime.new!(monday, ~T[09:00:00], "Etc/UTC"),
+        status: "completed",
+        category_id: cat.id
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(before_monday, ~T[09:00:00], "Etc/UTC"),
+        status: "completed",
+        category_id: cat.id
+      })
+
+      results = Pomodoro.sessions_by_category(:week)
+      assert [%{category_name: "Work", count: 1}] = results
+    end
+
+    test "respects :month period" do
+      today = Date.utc_today()
+      first = Date.beginning_of_month(today)
+      before_month = Date.add(first, -1)
+
+      cat = insert_category(%{name: "Work", color: "#ff0000"})
+
+      insert_session(%{
+        started_at: DateTime.new!(first, ~T[09:00:00], "Etc/UTC"),
+        status: "completed",
+        category_id: cat.id
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(before_month, ~T[09:00:00], "Etc/UTC"),
+        status: "completed",
+        category_id: cat.id
+      })
+
+      results = Pomodoro.sessions_by_category(:month)
+      assert [%{category_name: "Work", count: 1}] = results
+    end
+  end
+
+  describe "daily_streak/0" do
+    test "returns 0 when no sessions exist" do
+      assert Pomodoro.daily_streak() == 0
+    end
+
+    test "returns 1 when only today has completed sessions" do
+      today = Date.utc_today()
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      assert Pomodoro.daily_streak() == 1
+    end
+
+    test "returns consecutive day count" do
+      today = Date.utc_today()
+
+      for offset <- 0..4 do
+        date = Date.add(today, -offset)
+
+        insert_session(%{
+          started_at: DateTime.new!(date, ~T[09:00:00], "Etc/UTC"),
+          status: "completed"
+        })
+      end
+
+      assert Pomodoro.daily_streak() == 5
+    end
+
+    test "stops counting at a gap" do
+      today = Date.utc_today()
+
+      # Today and yesterday have sessions, day before yesterday does not, 3 days ago does
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(Date.add(today, -1), ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(Date.add(today, -3), ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      assert Pomodoro.daily_streak() == 2
+    end
+
+    test "returns 0 when today has no completed sessions" do
+      yesterday = Date.add(Date.utc_today(), -1)
+
+      insert_session(%{
+        started_at: DateTime.new!(yesterday, ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      assert Pomodoro.daily_streak() == 0
+    end
+  end
+
+  describe "sessions_by_day/1" do
+    test "returns zero-filled list for :week when no sessions" do
+      result = Pomodoro.sessions_by_day(:week)
+
+      today = Date.utc_today()
+      monday = Date.add(today, 1 - Date.day_of_week(today))
+      expected_length = Date.diff(today, monday) + 1
+
+      assert length(result) == expected_length
+      assert Enum.all?(result, fn {_date, count} -> count == 0 end)
+    end
+
+    test "returns correct counts per day" do
+      today = Date.utc_today()
+      first = Date.beginning_of_month(today)
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[08:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[10:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(first, ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      result = Pomodoro.sessions_by_day(:month) |> Map.new()
+
+      assert Map.get(result, today) == 2
+      assert Map.get(result, first) == 1
+    end
+
+    test "excludes cancelled sessions" do
+      today = Date.utc_today()
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[09:00:00], "Etc/UTC"),
+        status: "completed"
+      })
+
+      insert_session(%{
+        started_at: DateTime.new!(today, ~T[10:00:00], "Etc/UTC"),
+        status: "cancelled"
+      })
+
+      result = Pomodoro.sessions_by_day(:week) |> Map.new()
+      assert Map.get(result, today) == 1
+    end
+
+    test "returns results in ascending date order" do
+      result = Pomodoro.sessions_by_day(:week)
+      dates = Enum.map(result, fn {date, _} -> date end)
+      assert dates == Enum.sort(dates, Date)
+    end
+
+    test "returns correct range length for :month" do
+      today = Date.utc_today()
+      first = Date.beginning_of_month(today)
+      expected_length = Date.diff(today, first) + 1
+
+      result = Pomodoro.sessions_by_day(:month)
+      assert length(result) == expected_length
+    end
+  end
 end
