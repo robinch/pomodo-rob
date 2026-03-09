@@ -6,6 +6,7 @@ defmodule PomodoRob.Pomodoro do
   import Ecto.Query
 
   alias PomodoRob.Pomodoro.Category
+  alias PomodoRob.Pomodoro.Session
   alias PomodoRob.Pomodoro.Settings
   alias PomodoRob.Repo
 
@@ -77,5 +78,54 @@ defmodule PomodoRob.Pomodoro do
   @spec change_settings(Settings.t(), map()) :: Ecto.Changeset.t()
   def change_settings(%Settings{} = settings, attrs \\ %{}) do
     Settings.changeset(settings, attrs)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Sessions
+  # ---------------------------------------------------------------------------
+
+  @doc "Returns all sessions ordered by started_at descending, with category preloaded."
+  @spec list_sessions() :: [Session.t()]
+  def list_sessions do
+    Session
+    |> order_by([s], desc: s.started_at)
+    |> preload(:category)
+    |> Repo.all()
+  end
+
+  @doc "Gets a session by id. Raises `Ecto.NoResultsError` if not found."
+  @spec get_session!(integer()) :: Session.t()
+  def get_session!(id) do
+    Session
+    |> preload(:category)
+    |> Repo.get!(id)
+  end
+
+  @doc "Creates a session with the given attrs."
+  @spec create_session(map()) :: {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def create_session(attrs \\ %{}) do
+    %Session{}
+    |> Session.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc "Updates a session with the given attrs."
+  @spec update_session(Session.t(), map()) :: {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def update_session(%Session{} = session, attrs) do
+    session
+    |> Session.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc "Deletes a session."
+  @spec delete_session(Session.t()) :: {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def delete_session(%Session{} = session) do
+    Repo.delete(session)
+  end
+
+  @doc "Returns a changeset for the given session and optional attrs."
+  @spec change_session(Session.t(), map()) :: Ecto.Changeset.t()
+  def change_session(%Session{} = session, attrs \\ %{}) do
+    Session.changeset(session, attrs)
   end
 end
