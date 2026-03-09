@@ -86,6 +86,7 @@ Tasks are organized in 6 phases with dependencies. Work them in order:
 
 ### When completing a task
 
+0. **Before implementing**: run `gh issue view <number>` and verify the implementation will satisfy all requirements in the issue
 1. Mark the checkbox in `TASKS.md` (`- [x]`)
 2. Close the GitHub Issue: `gh issue close <number>`
 3. Commit the work
