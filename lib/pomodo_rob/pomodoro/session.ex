@@ -23,5 +23,6 @@ defmodule PomodoRob.Pomodoro.Session do
     |> validate_required([:duration, :started_at, :status])
     |> validate_number(:duration, greater_than: 0)
     |> validate_inclusion(:status, @valid_statuses)
+    |> foreign_key_constraint(:category_id)
   end
 end
