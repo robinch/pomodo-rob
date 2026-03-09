@@ -86,11 +86,13 @@ Tasks are organized in 6 phases with dependencies. Work them in order:
 
 ### When completing a task
 
-0. **Before implementing**: run `gh issue view <number>` and verify the implementation will satisfy all requirements in the issue
-1. Mark the checkbox in `TASKS.md` (`- [x]`)
-2. Close the GitHub Issue: `gh issue close <number>`
-3. Commit the work
-4. Check what's next by reviewing TASKS.md for the next unchecked item
+0. **Find next task**: check `TASKS.md` for the next unchecked item. Task numbers match issue numbers 1:1 (task #5 = issue #5)
+1. **Fetch issue once**: run `gh issue view <number>` **once** to get requirements. Do NOT re-fetch the same issue — read it once and refer back to it
+2. Implement the task
+3. Mark the checkbox in `TASKS.md` (`- [x]`)
+4. Close the GitHub Issue: `gh issue close <number>`
+5. Commit the work
+6. Check what's next by reviewing TASKS.md for the next unchecked item
 
 ### Verification after each phase
 
