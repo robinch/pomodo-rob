@@ -176,5 +176,121 @@ defmodule PomodoRob.Pomodoro do
     list_sessions(status: "completed", category_id: category_id)
   end
 
+  # ---------------------------------------------------------------------------
+  # Stats
+  # ---------------------------------------------------------------------------
+
+  @doc "Returns the number of completed sessions started today."
+  @spec sessions_completed_today() :: non_neg_integer()
+  def sessions_completed_today do
+    today = Date.utc_today()
+
+    Session
+    |> where([s], s.status == "completed")
+    |> where(
+      [s],
+      s.started_at >= ^day_start(today) and s.started_at < ^day_start(Date.add(today, 1))
+    )
+    |> Repo.aggregate(:count)
+  end
+
+  @doc """
+  Returns completed session counts grouped by category for a given period.
+
+  Accepts `:today`, `:week`, or `:month`.
+
+  Returns `[%{category_name: name, category_color: color, count: n}]` ordered by count desc.
+  Sessions without a category are grouped under `"Uncategorized"` with `nil` color.
+  """
+  @spec sessions_by_category(:today | :week | :month) :: [map()]
+  def sessions_by_category(period) do
+    {from, to} = period_range(period)
+
+    Session
+    |> join(:left, [s], c in Category, on: s.category_id == c.id)
+    |> where([s, _c], s.status == "completed")
+    |> where(
+      [s, _c],
+      s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1))
+    )
+    |> group_by([_s, c], [c.name, c.color])
+    |> select([_s, c], %{
+      category_name: coalesce(c.name, "Uncategorized"),
+      category_color: c.color,
+      count: count()
+    })
+    |> order_by([_s, _c], desc: count())
+    |> Repo.all()
+  end
+
+  @doc """
+  Returns the current daily streak — the number of consecutive days
+  (ending today) with at least one completed session.
+
+  Returns 0 if there are no completed sessions today.
+  """
+  @spec daily_streak() :: non_neg_integer()
+  def daily_streak do
+    dates =
+      Session
+      |> where([s], s.status == "completed")
+      |> select([s], fragment("?::date", s.started_at))
+      |> distinct(true)
+      |> Repo.all()
+      |> MapSet.new()
+
+    count_streak(dates, Date.utc_today(), 0)
+  end
+
+  @doc """
+  Returns session counts per day for a given period (`:week` or `:month`).
+
+  Returns `[{date, count}]` ordered ascending by date, with zero-filled gaps.
+  """
+  @spec sessions_by_day(:week | :month) :: [{Date.t(), non_neg_integer()}]
+  def sessions_by_day(period) do
+    {from, to} = period_range(period)
+
+    counts =
+      Session
+      |> where([s], s.status == "completed")
+      |> where(
+        [s],
+        s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1))
+      )
+      |> group_by([s], fragment("?::date", s.started_at))
+      |> select([s], {fragment("?::date", s.started_at), count()})
+      |> Repo.all()
+      |> Map.new()
+
+    Date.range(from, to)
+    |> Enum.map(fn date -> {date, Map.get(counts, date, 0)} end)
+  end
+
+  # --- Private helpers --------------------------------------------------------
+
   defp day_start(%Date{} = date), do: DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
+
+  defp period_range(:today), do: {Date.utc_today(), Date.utc_today()}
+
+  defp period_range(:week) do
+    today = Date.utc_today()
+    day_of_week = Date.day_of_week(today)
+    monday = Date.add(today, 1 - day_of_week)
+    {monday, today}
+  end
+
+  defp period_range(:month) do
+    today = Date.utc_today()
+    first = Date.beginning_of_month(today)
+    {first, today}
+  end
+
+  defp count_streak(date_set, date, acc) do
+    if MapSet.member?(date_set, date) do
+      count_streak(date_set, Date.add(date, -1), acc + 1)
+    else
+      acc
+    end
+  end
 end
