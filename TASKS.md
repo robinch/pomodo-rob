@@ -17,8 +17,8 @@
 ## Phase 3: Core Context
 
 **Category track:**
-- [ ] #9 Implement Category CRUD in Pomodoro context
-- [ ] #10 Write tests for Category CRUD
+- [x] #9 Implement Category CRUD in Pomodoro context
+- [x] #10 Write tests for Category CRUD
 
 **Settings track:**
 - [ ] #11 Implement Settings functions in Pomodoro context
