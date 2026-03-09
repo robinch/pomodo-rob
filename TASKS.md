@@ -21,8 +21,8 @@
 - [x] #10 Write tests for Category CRUD
 
 **Settings track:**
-- [ ] #11 Implement Settings functions in Pomodoro context
-- [ ] #12 Write tests for Settings functions
+- [x] #11 Implement Settings functions in Pomodoro context
+- [x] #12 Write tests for Settings functions
 
 **Session track:**
 - [ ] #13 Implement Session CRUD in Pomodoro context
