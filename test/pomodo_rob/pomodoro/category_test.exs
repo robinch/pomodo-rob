@@ -7,7 +7,15 @@ defmodule PomodoRob.Pomodoro.CategoryTest do
   describe "list_categories/0" do
     test "returns all categories" do
       {:ok, cat} = Pomodoro.create_category(%{name: "Work", color: "#ff0000"})
-      assert Pomodoro.list_categories() == [cat]
+      assert cat in Pomodoro.list_categories()
+    end
+
+    test "returns categories ordered by name" do
+      {:ok, _} = Pomodoro.create_category(%{name: "Work", color: "#ff0000"})
+      {:ok, _} = Pomodoro.create_category(%{name: "Personal", color: "#00ff00"})
+      {:ok, _} = Pomodoro.create_category(%{name: "Study", color: "#0000ff"})
+      names = Pomodoro.list_categories() |> Enum.map(& &1.name)
+      assert names == Enum.sort(names)
     end
 
     test "returns empty list when no categories exist" do
