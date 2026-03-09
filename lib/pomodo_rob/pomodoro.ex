@@ -6,6 +6,7 @@ defmodule PomodoRob.Pomodoro do
   import Ecto.Query
 
   alias PomodoRob.Pomodoro.Category
+  alias PomodoRob.Pomodoro.Settings
   alias PomodoRob.Repo
 
   # ---------------------------------------------------------------------------
@@ -52,5 +53,29 @@ defmodule PomodoRob.Pomodoro do
   @spec change_category(Category.t(), map()) :: Ecto.Changeset.t()
   def change_category(%Category{} = category, attrs \\ %{}) do
     Category.changeset(category, attrs)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Settings
+  # ---------------------------------------------------------------------------
+
+  @doc "Returns the single settings row. Raises if none exist."
+  @spec get_settings!() :: Settings.t()
+  def get_settings! do
+    Repo.one!(Settings)
+  end
+
+  @doc "Updates the settings with the given attrs."
+  @spec update_settings(Settings.t(), map()) :: {:ok, Settings.t()} | {:error, Ecto.Changeset.t()}
+  def update_settings(%Settings{} = settings, attrs) do
+    settings
+    |> Settings.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc "Returns a changeset for the given settings and optional attrs."
+  @spec change_settings(Settings.t(), map()) :: Ecto.Changeset.t()
+  def change_settings(%Settings{} = settings, attrs \\ %{}) do
+    Settings.changeset(settings, attrs)
   end
 end
