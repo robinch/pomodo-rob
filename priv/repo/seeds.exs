@@ -30,5 +30,12 @@ end)
 
 # Default settings (only insert if none exist)
 if Repo.aggregate(Settings, :count) == 0 do
-  Repo.insert!(Settings.changeset(%Settings{}, %{}))
+  Repo.insert!(
+    Settings.changeset(%Settings{}, %{
+      session_duration: 25,
+      short_break: 5,
+      long_break: 15,
+      sessions_before_long_break: 4
+    })
+  )
 end
