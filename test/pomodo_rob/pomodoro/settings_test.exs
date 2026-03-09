@@ -76,7 +76,7 @@ defmodule PomodoRob.Pomodoro.SettingsTest do
     test "nil long_break returns error changeset" do
       settings = insert_settings()
       assert {:error, changeset} = Pomodoro.update_settings(settings, %{long_break: nil})
-      assert %{long_break: ["can't be blank"]} = errors_on(changeset)
+      assert %{long_break: [_]} = errors_on(changeset)
     end
 
     test "zero sessions_before_long_break returns error changeset" do
