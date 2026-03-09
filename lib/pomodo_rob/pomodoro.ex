@@ -103,11 +103,7 @@ defmodule PomodoRob.Pomodoro do
         where(query, [s], s.status == ^status)
 
       {:date, date}, query ->
-        where(
-          query,
-          [s],
-          s.started_at >= ^day_start(date) and s.started_at < ^day_start(Date.add(date, 1))
-        )
+        where_date_range(query, date, date)
 
       filter, _query ->
         raise ArgumentError, "list_sessions/1: unknown filter #{inspect(filter)}"
@@ -164,7 +160,7 @@ defmodule PomodoRob.Pomodoro do
   def list_sessions_by_date_range(%Date{} = from, %Date{} = to) do
     Session
     |> where([s], s.status == "completed")
-    |> where([s], s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1)))
+    |> where_date_range(from, to)
     |> order_by([s], desc: s.started_at)
     |> preload(:category)
     |> Repo.all()
@@ -187,10 +183,7 @@ defmodule PomodoRob.Pomodoro do
 
     Session
     |> where([s], s.status == "completed")
-    |> where(
-      [s],
-      s.started_at >= ^day_start(today) and s.started_at < ^day_start(Date.add(today, 1))
-    )
+    |> where_date_range(today, today)
     |> Repo.aggregate(:count)
   end
 
@@ -209,10 +202,7 @@ defmodule PomodoRob.Pomodoro do
     Session
     |> join(:left, [s], c in Category, on: s.category_id == c.id)
     |> where([s, _c], s.status == "completed")
-    |> where(
-      [s, _c],
-      s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1))
-    )
+    |> where_date_range(from, to)
     |> group_by([_s, c], [c.name, c.color])
     |> select([_s, c], %{
       category_name: coalesce(c.name, "Uncategorized"),
@@ -254,10 +244,7 @@ defmodule PomodoRob.Pomodoro do
     counts =
       Session
       |> where([s], s.status == "completed")
-      |> where(
-        [s],
-        s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1))
-      )
+      |> where_date_range(from, to)
       |> group_by([s], fragment("?::date", s.started_at))
       |> select([s], {fragment("?::date", s.started_at), count()})
       |> Repo.all()
@@ -270,6 +257,14 @@ defmodule PomodoRob.Pomodoro do
   # --- Private helpers --------------------------------------------------------
 
   defp day_start(%Date{} = date), do: DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
+
+  defp where_date_range(query, %Date{} = from, %Date{} = to) do
+    where(
+      query,
+      [s],
+      s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1))
+    )
+  end
 
   defp period_range(:today), do: {Date.utc_today(), Date.utc_today()}
 
