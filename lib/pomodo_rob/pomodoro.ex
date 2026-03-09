@@ -6,6 +6,7 @@ defmodule PomodoRob.Pomodoro do
   import Ecto.Query
 
   alias PomodoRob.Pomodoro.Category
+  alias PomodoRob.Pomodoro.Session
   alias PomodoRob.Pomodoro.Settings
   alias PomodoRob.Repo
 
@@ -78,4 +79,102 @@ defmodule PomodoRob.Pomodoro do
   def change_settings(%Settings{} = settings, attrs \\ %{}) do
     Settings.changeset(settings, attrs)
   end
+
+  # ---------------------------------------------------------------------------
+  # Sessions
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Returns sessions ordered by started_at descending, with category preloaded.
+
+  Accepts optional filters:
+  - `:category_id` — filter by category
+  - `:status` — filter by status ("completed" or "cancelled")
+  - `:date` — filter to sessions started on a given `Date`
+  """
+  @spec list_sessions(keyword()) :: [Session.t()]
+  def list_sessions(filters \\ []) do
+    filters
+    |> Enum.reduce(Session, fn
+      {:category_id, id}, query ->
+        where(query, [s], s.category_id == ^id)
+
+      {:status, status}, query ->
+        where(query, [s], s.status == ^status)
+
+      {:date, date}, query ->
+        where(
+          query,
+          [s],
+          s.started_at >= ^day_start(date) and s.started_at < ^day_start(Date.add(date, 1))
+        )
+
+      filter, _query ->
+        raise ArgumentError, "list_sessions/1: unknown filter #{inspect(filter)}"
+    end)
+    |> order_by([s], desc: s.started_at)
+    |> preload(:category)
+    |> Repo.all()
+  end
+
+  @doc "Gets a session by id. Raises `Ecto.NoResultsError` if not found."
+  @spec get_session!(integer()) :: Session.t()
+  def get_session!(id) do
+    Session
+    |> preload(:category)
+    |> Repo.get!(id)
+  end
+
+  @doc "Creates a session with the given attrs."
+  @spec create_session(map()) :: {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def create_session(attrs \\ %{}) do
+    %Session{}
+    |> Session.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc "Updates a session with the given attrs."
+  @spec update_session(Session.t(), map()) :: {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def update_session(%Session{} = session, attrs) do
+    session
+    |> Session.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc "Deletes a session."
+  @spec delete_session(Session.t()) :: {:ok, Session.t()} | {:error, Ecto.Changeset.t()}
+  def delete_session(%Session{} = session) do
+    Repo.delete(session)
+  end
+
+  @doc "Returns a changeset for the given session and optional attrs."
+  @spec change_session(Session.t(), map()) :: Ecto.Changeset.t()
+  def change_session(%Session{} = session, attrs \\ %{}) do
+    Session.changeset(session, attrs)
+  end
+
+  @doc "Returns completed sessions started today, ordered by started_at desc."
+  @spec list_sessions_today() :: [Session.t()]
+  def list_sessions_today do
+    list_sessions(status: "completed", date: Date.utc_today())
+  end
+
+  @doc "Returns completed sessions started within the given date range (inclusive), ordered by started_at desc."
+  @spec list_sessions_by_date_range(Date.t(), Date.t()) :: [Session.t()]
+  def list_sessions_by_date_range(%Date{} = from, %Date{} = to) do
+    Session
+    |> where([s], s.status == "completed")
+    |> where([s], s.started_at >= ^day_start(from) and s.started_at < ^day_start(Date.add(to, 1)))
+    |> order_by([s], desc: s.started_at)
+    |> preload(:category)
+    |> Repo.all()
+  end
+
+  @doc "Returns completed sessions for the given category, ordered by started_at desc."
+  @spec list_sessions_by_category(integer()) :: [Session.t()]
+  def list_sessions_by_category(category_id) do
+    list_sessions(status: "completed", category_id: category_id)
+  end
+
+  defp day_start(%Date{} = date), do: DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
 end
