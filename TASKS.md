@@ -9,7 +9,7 @@
 
 ## Phase 2: Database Layer
 
-- [ ] #5 Create Category schema and migration
+- [x] #5 Create Category schema and migration
 - [ ] #6 Create Settings schema and migration
 - [ ] #7 Create Session schema and migration
 - [ ] #8 Create seeds file for default data
