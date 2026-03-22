@@ -9,11 +9,14 @@ defmodule PomodoRob.Pomodoro.Timer do
   ## State
 
       %{
-        status:            :idle | :running | :completed,
+        status:            :idle | :running | :paused | :completed,
         remaining_seconds: non_neg_integer(),
         category_id:       integer() | nil,
         started_at:        DateTime.t() | nil,
-        session_count:     non_neg_integer()
+        session_count:     non_neg_integer(),
+        tick_ref:          reference() | nil,
+        paused_seconds:    non_neg_integer(),
+        paused_at:         DateTime.t() | nil
       }
   """
 
@@ -43,6 +46,21 @@ defmodule PomodoRob.Pomodoro.Timer do
     GenServer.call(name, {:start_timer, category_id, duration_minutes})
   end
 
+  @doc "Pauses a running timer, preserving remaining time."
+  def pause_timer(name \\ __MODULE__) do
+    GenServer.call(name, :pause_timer)
+  end
+
+  @doc "Resumes a paused timer."
+  def resume_timer(name \\ __MODULE__) do
+    GenServer.call(name, :resume_timer)
+  end
+
+  @doc "Cancels the current timer without saving the session."
+  def cancel_timer(name \\ __MODULE__) do
+    GenServer.call(name, :cancel_timer)
+  end
+
   @doc "Returns the current timer state as a map."
   def get_state(name \\ __MODULE__) do
     GenServer.call(name, :get_state)
@@ -59,7 +77,8 @@ defmodule PomodoRob.Pomodoro.Timer do
   end
 
   @impl true
-  def handle_call({:start_timer, _category_id, _duration}, _from, %{status: :running} = state) do
+  def handle_call({:start_timer, _category_id, _duration}, _from, %{status: status} = state)
+      when status in [:running, :paused] do
     {:reply, {:error, :already_running}, state}
   end
 
@@ -76,13 +95,58 @@ defmodule PomodoRob.Pomodoro.Timer do
       | status: :running,
         remaining_seconds: remaining,
         category_id: category_id,
-        started_at: DateTime.utc_now()
+        started_at: DateTime.utc_now(),
+        tick_ref: schedule_tick()
     }
 
-    schedule_tick()
     broadcast(new_state)
 
     {:reply, :ok, new_state}
+  end
+
+  @impl true
+  def handle_call(:pause_timer, _from, %{status: :running, tick_ref: ref} = state) do
+    cancel_tick(ref)
+    new_state = %{state | status: :paused, tick_ref: nil, paused_at: DateTime.utc_now()}
+    broadcast(new_state)
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call(:pause_timer, _from, state) do
+    {:reply, {:error, :not_running}, state}
+  end
+
+  @impl true
+  def handle_call(:resume_timer, _from, %{status: :paused} = state) do
+    pause_duration = DateTime.diff(DateTime.utc_now(), state.paused_at, :second)
+
+    new_state = %{
+      state
+      | status: :running,
+        tick_ref: schedule_tick(),
+        paused_seconds: state.paused_seconds + pause_duration,
+        paused_at: nil
+    }
+
+    broadcast(new_state)
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call(:resume_timer, _from, state) do
+    {:reply, {:error, :not_paused}, state}
+  end
+
+  @impl true
+  def handle_call(:cancel_timer, _from, %{status: status, tick_ref: ref} = state)
+      when status in [:running, :paused] do
+    cancel_tick(ref)
+    new_state = %{initial_state() | session_count: state.session_count}
+    broadcast(new_state)
+    {:reply, :ok, new_state}
+  end
+
+  def handle_call(:cancel_timer, _from, state) do
+    {:reply, {:error, :not_active}, state}
   end
 
   @impl true
@@ -99,8 +163,7 @@ defmodule PomodoRob.Pomodoro.Timer do
       broadcast(new_state)
       {:noreply, new_state}
     else
-      new_state = %{state | remaining_seconds: new_remaining}
-      schedule_tick()
+      new_state = %{state | remaining_seconds: new_remaining, tick_ref: schedule_tick()}
       broadcast(new_state)
       {:noreply, new_state}
     end
@@ -119,7 +182,10 @@ defmodule PomodoRob.Pomodoro.Timer do
       remaining_seconds: 0,
       category_id: nil,
       started_at: nil,
-      session_count: 0
+      session_count: 0,
+      tick_ref: nil,
+      paused_seconds: 0,
+      paused_at: nil
     }
   end
 
@@ -127,9 +193,17 @@ defmodule PomodoRob.Pomodoro.Timer do
     Process.send_after(self(), :tick, 1_000)
   end
 
+  defp cancel_tick(nil), do: :ok
+
+  defp cancel_tick(ref) do
+    Process.cancel_timer(ref)
+    :ok
+  end
+
   defp complete_session(state) do
     now = DateTime.utc_now()
-    duration = DateTime.diff(now, state.started_at, :second)
+    wall_clock = DateTime.diff(now, state.started_at, :second)
+    duration = wall_clock - state.paused_seconds
 
     attrs = %{
       duration: duration,
@@ -151,7 +225,8 @@ defmodule PomodoRob.Pomodoro.Timer do
       state
       | status: :completed,
         remaining_seconds: 0,
-        session_count: state.session_count + 1
+        session_count: state.session_count + 1,
+        tick_ref: nil
     }
   end
 

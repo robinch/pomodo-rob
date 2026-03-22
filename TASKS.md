@@ -36,7 +36,7 @@
 ## Phase 4: Timer GenServer
 
 - [x] #18 Implement Timer GenServer — core start/tick/complete
-- [ ] #19 Add pause/resume/cancel to Timer GenServer
+- [x] #19 Add pause/resume/cancel to Timer GenServer
 - [ ] #20 Implement break logic in Timer GenServer
 - [ ] #21 Add Timer to supervision tree
 - [ ] #22 Write tests for Timer GenServer
