@@ -42,8 +42,10 @@ config :esbuild,
   ]
 
 # Configure tailwind (the version is required)
+# Use system binary — the downloaded one is dynamically linked and doesn't run on NixOS
 config :tailwind,
-  version: "4.1.12",
+  version: "4.2.1",
+  path: System.find_executable("tailwindcss"),
   pomodo_rob: [
     args: ~w(
       --input=assets/css/app.css
