@@ -19,6 +19,8 @@ defmodule PomodoRob.Pomodoro.Timer do
 
   use GenServer
 
+  require Logger
+
   alias PomodoRob.Pomodoro
 
   @pubsub PomodoRob.PubSub
@@ -61,6 +63,11 @@ defmodule PomodoRob.Pomodoro.Timer do
     {:reply, {:error, :already_running}, state}
   end
 
+  def handle_call({:start_timer, _category_id, duration}, _from, state)
+      when duration <= 0 do
+    {:reply, {:error, :invalid_duration}, state}
+  end
+
   def handle_call({:start_timer, category_id, duration_minutes}, _from, state) do
     remaining = duration_minutes * 60
 
@@ -84,18 +91,19 @@ defmodule PomodoRob.Pomodoro.Timer do
   end
 
   @impl true
-  def handle_info(:tick, %{status: :running, remaining_seconds: remaining} = state)
-      when remaining <= 1 do
-    new_state = complete_session(state)
-    broadcast(new_state)
-    {:noreply, new_state}
-  end
-
   def handle_info(:tick, %{status: :running} = state) do
-    new_state = %{state | remaining_seconds: state.remaining_seconds - 1}
-    schedule_tick()
-    broadcast(new_state)
-    {:noreply, new_state}
+    new_remaining = state.remaining_seconds - 1
+
+    if new_remaining <= 0 do
+      new_state = complete_session(state)
+      broadcast(new_state)
+      {:noreply, new_state}
+    else
+      new_state = %{state | remaining_seconds: new_remaining}
+      schedule_tick()
+      broadcast(new_state)
+      {:noreply, new_state}
+    end
   end
 
   def handle_info(:tick, state) do
@@ -131,7 +139,13 @@ defmodule PomodoRob.Pomodoro.Timer do
       category_id: state.category_id
     }
 
-    {:ok, _session} = Pomodoro.create_session(attrs)
+    case Pomodoro.create_session(attrs) do
+      {:ok, _session} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Timer: failed to persist session: #{inspect(reason)}")
+    end
 
     %{
       state
